@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>图书馆详情 - 西安公共图书馆导航</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; color: #333; background: #f5f7fa; line-height: 1.6; }
+  a { text-decoration: none; color: inherit; }
+
+  .navbar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); box-shadow: 0 2px 12px rgba(0,0,0,0.08); z-index: 1000; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; }
+  .navbar .logo { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; color: #1a5276; }
+  .navbar .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #2980b9, #1a5276); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; }
+  .navbar .nav-links { display: flex; gap: 30px; font-size: 15px; }
+  .navbar .nav-links a { color: #555; }
+  .navbar .nav-links a:hover { color: #2980b9; }
+
+  .main { max-width: 1100px; margin: 80px auto 40px; padding: 0 20px; }
+
+  /* 面包屑 */
+  .breadcrumb { font-size: 14px; color: #888; margin-bottom: 16px; }
+  .breadcrumb a { color: #2980b9; }
+  .breadcrumb a:hover { text-decoration: underline; }
+
+  /* 头部 */
+  .detail-header { background: linear-gradient(135deg, #1a5276, #2980b9); color: #fff; border-radius: 16px; padding: 32px 36px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; }
+  .detail-header h1 { font-size: 30px; margin-bottom: 8px; }
+  .detail-header .subtitle { font-size: 15px; opacity: 0.9; }
+  .detail-header .badges { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .badge { padding: 4px 14px; background: rgba(255,255,255,0.2); border-radius: 12px; font-size: 13px; border: 1px solid rgba(255,255,255,0.3); }
+  .header-actions { display: flex; gap: 10px; }
+  .btn-action { padding: 8px 18px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; border-radius: 8px; font-size: 14px; cursor: pointer; transition: background 0.2s; }
+  .btn-action:hover { background: rgba(255,255,255,0.25); }
+
+  /* 内容网格 */
+  .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+  .card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .card h3 { font-size: 18px; color: #1a5276; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #e8f4fd; display: flex; align-items: center; gap: 8px; }
+  .info-row { display: flex; margin-bottom: 14px; font-size: 14px; }
+  .info-row .label { min-width: 80px; color: #888; font-weight: 500; }
+  .info-row .value { color: #333; flex: 1; }
+  .info-row .value a { color: #2980b9; }
+  .info-row .value a:hover { text-decoration: underline; }
+
+  .tag-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tag { padding: 5px 14px; border-radius: 14px; font-size: 13px; font-weight: 500; }
+  .tag-free { background: #e8f8f0; color: #27ae60; }
+  .tag-study { background: #fff3e0; color: #e67e22; }
+  .tag-kids { background: #fde8f0; color: #c0392b; }
+  .tag-digital { background: #e8f0fe; color: #2980b9; }
+  .tag-lecture { background: #f3e8fd; color: #8e44ad; }
+
+  /* 开放时间表 */
+  .time-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .time-table th, .time-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+  .time-table th { color: #888; font-weight: 500; width: 100px; }
+  .time-table td { color: #333; }
+  .time-table tr.today { background: #e8f4fd; }
+  .time-table tr.today th, .time-table tr.today td { color: #1a5276; font-weight: 600; }
+  .closed { color: #ccc; }
+
+  /* 地图 */
+  .map-box { height: 280px; background: linear-gradient(135deg, #e8f4fd, #d0e8f7); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+  .map-pin { font-size: 40px; margin-bottom: 8px; animation: bounce 1.5s infinite; }
+  @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .map-addr { font-size: 14px; color: #555; text-align: center; padding: 0 16px; }
+  .map-coord { font-size: 12px; color: #999; margin-top: 4px; }
+  .map-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(41,128,185,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(41,128,185,0.08) 1px, transparent 1px); background-size: 30px 30px; }
+
+  /* 简介 */
+  .intro-card { grid-column: 1 / -1; }
+  .intro-text { font-size: 15px; color: #555; line-height: 1.8; margin-bottom: 16px; }
+  .feature-list { list-style: none; }
+  .feature-list li { padding: 8px 0; padding-left: 24px; position: relative; font-size: 14px; color: #555; }
+  .feature-list li::before { content: "✓"; position: absolute; left: 0; color: #27ae60; font-weight: bold; }
+
+  /* 运营数据 */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  .stat-item { text-align: center; padding: 20px 12px; background: linear-gradient(135deg, #f8fbff, #eef5fc); border-radius: 10px; }
+  .stat-item .num { font-size: 28px; font-weight: 700; color: #2980b9; }
+  .stat-item .unit { font-size: 13px; color: #888; }
+  .stat-item .label { font-size: 13px; color: #666; margin-top: 4px; }
+
+  /* 迷你图表 */
+  .chart-container { height: 160px; display: flex; align-items: flex-end; justify-content: space-around; gap: 6px; padding: 0 8px; border-left: 1px solid #eee; border-bottom: 1px solid #eee; }
+  .chart-bar { flex: 1; background: linear-gradient(180deg, #2980b9, #1a5276); border-radius: 4px 4px 0 0; min-height: 4px; position: relative; transition: opacity 0.2s; cursor: pointer; }
+  .chart-bar:hover { opacity: 0.8; }
+  .chart-bar .tip { position: absolute; top: -24px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; opacity: 0; transition: opacity 0.2s; }
+  .chart-bar:hover .tip { opacity: 1; }
+  .chart-labels { display: flex; justify-content: space-around; margin-top: 6px; font-size: 11px; color: #999; }
+
+  /* 数据来源 */
+  .source-bar { background: #fffbe6; border: 1px solid #ffe58f; border-radius: 10px; padding: 16px 20px; margin-top: 24px; font-size: 13px; color: #8c6d1f; display: flex; align-items: flex-start; gap: 10px; }
+  .source-bar .icon { font-size: 18px; }
+
+  .footer { background: #1a2a3a; color: #aaa; padding: 30px 20px 20px; margin-top: 40px; }
+  .footer-inner { max-width: 1100px; margin: 0 auto; text-align: center; font-size: 12px; color: #777; }
+
+  @media (max-width: 768px) {
+    .navbar { padding: 0 16px; }
+    .navbar .nav-links { display: none; }
+    .content-grid { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .detail-header { padding: 24px 20px; }
+    .detail-header h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="logo">
+    <div class="logo-icon">📚</div>
+    <span>西安公共图书馆导航</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html">首页</a>
+    <a href="index.html#source">数据来源</a>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="breadcrumb">
+    <a href="index.html">← 返回列表</a> &nbsp;|&nbsp; <a href="index.html">首页</a> / 图书馆详情 / <span id="bcName">加载中...</span>
+  </div>
+
+  <div id="detailContent">
+    <!-- 动态渲染 -->
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    © 2025 西安公共图书馆导航 · 仅供学习演示使用 · 数据来源：西安市文化和旅游局
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+const id = parseInt(params.get('id')) || 1;
+const lib = SITE_DATA.libraries.find(l => l.id === id);
+const stats = SITE_DATA.stats[id] || { months: [], borrow: [], visitor: [] };
+
+if (!lib) {
+  document.getElementById('detailContent').innerHTML = '<div class="card"><p>未找到该图书馆信息。<a href="index.html" style="color:#2980b9;">返回列表</a></p></div>';
+} else {
+  document.getElementById('bcName').textContent = lib.name;
+  document.title = lib.name + ' - 西安公共图书馆导航';
+
+  const today = new Date().getDay(); // 0=周日
+  const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+
+  // 解析开放时间
+  const openStr = lib.open_time;
+  let timeRows = days.map((d, i) => {
+    const dayIdx = i === 0 ? 1 : i + 1; // 周一=1
+    const isClosed = openStr.includes('周一闭馆') && i === 0;
+    const time = isClosed ? '闭馆' : openStr.split('，')[0].replace(/周二至周日\s*/, '');
+    return { day: d, time: time, isToday: (today === (i === 0 ? 1 : i + 1)), closed: isClosed };
+  });
+
+  const maxBorrow = Math.max(...stats.borrow, 1);
+  const chartBars = stats.months.map((m, i) => {
+    const h = (stats.borrow[i] / maxBorrow * 130).toFixed(1);
+    return `<div class="chart-bar" style="height:${h}px"><span class="tip">${m}: ${stats.borrow[i].toLocaleString()}册次</span></div>`;
+  }).join('');
+  const chartLabels = stats.months.map(m => m.slice(5)).map((m, i) => i % 2 === 0 ? m : '').join('</div><div>');
+
+  const totalBorrow = stats.borrow.reduce((a, b) => a + b, 0);
+  const totalVisitor = stats.visitor.reduce((a, b) => a + b, 0);
+  const avgBorrow = Math.round(totalBorrow / 12);
+
+  document.getElementById('detailContent').innerHTML = `
+    <!-- 头部 -->
+    <div class="detail-header">
+      <div>
+        <h1>${lib.name}</h1>
+        <div class="subtitle">${lib.district} · 公共图书馆</div>
+        <div class="badges">
+          ${lib.is_free === '是' ? '<span class="badge">免费开放</span>' : ''}
+          ${lib.has_study_room === '是' ? '<span class="badge">有自习室</span>' : ''}
+          ${lib.has_kids_area === '是' ? '<span class="badge">有少儿区</span>' : ''}
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-action" onclick="alert('已加入收藏（演示）')">⭐ 收藏</button>
+        <button class="btn-action" onclick="alert('分享链接已复制（演示）')">🔗 分享</button>
+      </div>
+    </div>
+
+    <!-- 运营数据概览 -->
+    <div class="card" style="margin-bottom:24px;">
+      <h3>📊 2025年度运营数据概览</h3>
+      <div class="stats-grid">
+        <div class="stat-item"><div class="num">${lib.collection}</div><div class="unit">万册</div><div class="label">馆藏总量</div></div>
+        <div class="stat-item"><div class="num">${lib.seats}</div><div class="unit">个</div><div class="label">阅览座位</div></div>
+        <div class="stat-item"><div class="num">${(totalBorrow/10000).toFixed(1)}</div><div class="unit">万册次</div><div class="label">年度借阅量</div></div>
+        <div class="stat-item"><div class="num">${(totalVisitor/10000).toFixed(1)}</div><div class="unit">万人次</div><div class="label">年度到馆人次</div></div>
+      </div>
+      <div style="font-size:13px;color:#888;margin-bottom:8px;">月度借阅量趋势（2025年）</div>
+      <div class="chart-container">${chartBars}</div>
+      <div class="chart-labels"><div>${chartLabels}</div></div>
+    </div>
+
+    <!-- 基本信息 + 地图 -->
+    <div class="content-grid">
+      <div class="card">
+        <h3>📋 基本信息</h3>
+        <div class="info-row"><span class="label">馆名</span><span class="value">${lib.name}</span></div>
+        <div class="info-row"><span class="label">所属区域</span><span class="value">${lib.district}</span></div>
+        <div class="info-row"><span class="label">地址</span><span class="value">${lib.address}</span></div>
+        <div class="info-row"><span class="label">联系电话</span><span class="value"><a href="tel:${lib.phone}">${lib.phone}</a></span></div>
+        <div class="info-row"><span class="label">官方网站</span><span class="value"><a href="http://${lib.website}" target="_blank">${lib.website}</a></span></div>
+        <div class="info-row"><span class="label">馆藏量</span><span class="value">${lib.collection} 万册</span></div>
+        <div class="info-row"><span class="label">座位数</span><span class="value">${lib.seats} 个</span></div>
+        <div class="info-row" style="align-items:flex-start;"><span class="label">设施服务</span>
+          <div class="tag-group">
+            ${lib.is_free === '是' ? '<span class="tag tag-free">免费开放</span>' : ''}
+            ${lib.has_study_room === '是' ? '<span class="tag tag-study">自习室</span>' : ''}
+            ${lib.has_kids_area === '是' ? '<span class="tag tag-kids">少儿区</span>' : ''}
+            <span class="tag tag-digital">电子阅览室</span>
+            <span class="tag tag-lecture">报告厅</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>🗺️ 位置地图</h3>
+        <div class="map-box">
+          <div class="map-grid"></div>
+          <div class="map-pin">📍</div>
+          <div class="map-addr">${lib.address}</div>
+          <div class="map-coord">经度 108.9°E · 纬度 34.3°N（示意）</div>
+        </div>
+        <div style="margin-top:16px;">
+          <h3 style="font-size:16px;border-bottom:none;padding-bottom:0;margin-bottom:12px;">🕐 开放时间</h3>
+          <table class="time-table">
+            ${timeRows.map(r => `<tr class="${r.isToday ? 'today' : ''}"><th>${r.day}${r.isToday ? ' (今天)' : ''}</th><td class="${r.closed ? 'closed' : ''}">${r.time}</td></tr>`).join('')}
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 简介 -->
+    <div class="card intro-card">
+      <h3>📖 图书馆简介</h3>
+      <p class="intro-text">${lib.intro}</p>
+      <h3 style="font-size:16px;border-bottom:none;padding-bottom:0;margin:20px 0 12px;">✨ 特色服务</h3>
+      <ul class="feature-list">
+        <li>免费办理读者证，凭身份证即可借阅</li>
+        <li>支持全市公共图书馆通借通还服务</li>
+        <li>定期举办读书分享会、讲座和展览活动</li>
+        <li>提供数字资源远程访问，电子图书在线阅读</li>
+        ${lib.has_kids_area === '是' ? '<li>设有少儿阅览区，适合亲子阅读和儿童活动</li>' : ''}
+        ${lib.has_study_room === '是' ? '<li>配备独立自习室，安静舒适，适合学习备考</li>' : ''}
+      </ul>
+    </div>
+
+    <!-- 数据来源 -->
+    <div class="source-bar">
+      <span class="icon">📌</span>
+      <div>
+        <strong>数据来源：</strong>${lib.source}<br/>
+        本页面信息仅供参考，具体开放时间和服务请以图书馆官方公告为准。
+      </div>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
